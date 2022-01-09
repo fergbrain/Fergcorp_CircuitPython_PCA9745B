@@ -22,6 +22,8 @@ Implementation Notes
 * `NXP PCA9745B Datasheet <https://www.nxp.com/docs/en/data-sheet/PCA9745B.pdf>`_
 **Software and Dependencies:**
 * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+**Other:**
+* Designed to be somewhat compatible with: https://github.com/adafruit/Adafruit_TLC59711/
 """
 
 # pylint: disable=ungrouped-imports
@@ -140,6 +142,8 @@ class PCA9745B:
 
     _CFG_LEDOUT_IND = 0b10  # not used
     _CFG_LEDOUT_GROUP = 0b11  # required for blinking, used by default
+    _CFG_LEDOUT_GROUP_RGB = 0b00111111  # required for blinking, used by default
+    _CFG_LEDOUT_GROUP_RGBW = 0b11111111  # required for blinking, used by default
     _CFG_MODE2_BLINK = 0b00100000
     _CFG_MODE2_NORM = 0b00000000
     _CFG_IREFALL_OFF = 0x00
@@ -237,6 +241,69 @@ class PCA9745B:
 
     def error_flag_exist(self) -> bool:
         results = self._spi_read(self._REG_MODE2)  # Verify errors cleared
+
+    # TODO: Write setPWM method
+    def setPWM(self, led_num: int):
+        pass
+
+    def setLED(self, led_group: int, red: int, green: int, blue: int, white: int = None):
+        """
+            Set RGB/RGBW Color
+
+            :param int led_group: Group 0, 1, 2, or 3
+            :param int red: Value from 0-255
+            :param int blue: Value from 0-255
+            :param int green: Value from 0-255
+            :param int white: Value from 0-255. If using RGB, do not pass this variable.
+        """
+
+        if led_group > 3:
+            raise ValueError("You must select group 0, 1, 2, or 3. You selected: %s" % led_group)
+
+        if red > 255:
+            red = 255
+
+        if green > 255:
+            green = 255
+
+        if blue > 255:
+            blue = 255
+
+        red_led_num = (4 * led_group) + 0
+        green_led_num = (4 * led_group) + 1
+        blue_led_num = (4 * led_group) + 2
+
+        if white is not None:
+
+            if white > 255:
+                white = 255
+
+            self._spi_write(self._REG_LEDOUT0 + led_group, self._CFG_LEDOUT_GROUP_RGBW)  # Set group mode for RGBW
+
+            white_led_num = (4 * led_group) + 3
+            self.set_led(white_led_num, pwm=white, iref=0xFF)     # Blue
+        else:
+            self._spi_write(self._REG_LEDOUT0 + led_group, self._CFG_LEDOUT_GROUP_RGB)  # Set group mode for RGB
+
+            self.set_led(red_led_num, pwm=red, iref=0xFF)          # Red
+            self.set_led(green_led_num, pwm=green, iref=0xFF)    # Green
+            self.set_led(blue_led_num, pwm=blue, iref=0xFF)     # Blue
+
+    # TODO: Write getPWM method
+    def getPWM(self, led_num: int):
+        pass
+
+    # TODO: Write getLED method
+    def getLED(self, led_num: int):
+        pass
+
+    # TODO: Write simpleSetBrightness method
+    def simpleSetBrightness(self):
+        pass
+
+    # TODO: Write setBrightness method
+    def setBrightness(self):
+        pass
 
     def set_led(self, led_num, pwm: hex = None, iref: hex = None):
         self._spi_write(self._REG_PWM0 + led_num, pwm)
