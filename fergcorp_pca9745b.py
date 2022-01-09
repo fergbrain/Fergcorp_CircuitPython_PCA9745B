@@ -9,11 +9,14 @@ SPI driven CircuitPython driver for NXP PCA9745B constant current LED driver.
 * Author(s): Andrew Ferguson
 
 Based in part on: https://github.com/sensorberg/PCA9745B/
-`This is a driver class written in (micro)python, to control the PCA9745B or similars LED driver connected via SPI. It currently provides support for PWM controlling LED matrixes of various configurations.`
+`This is a driver class written in (micro)python, to control the PCA9745B or similars LED driver
+connected via SPI. It currently provides support for PWM controlling LED matrixes of various
+configurations.`
 Copyright (c) 2020 Mirko Vogt, Sensorberg GmbH (mirko.vogt@sensorberg.com)
 
 Coding and formatting follows conventions established by Adafruit Industries;
-neopixel_spi.py was used at the exemplar and is Copyright (c) 2019 Carter Nelson for Adafruit Industries
+neopixel_spi.py was used at the exemplar and is Copyright (c) 2019 Carter Nelson for
+Adafruit Industries
 
 Implementation Notes
 --------------------
@@ -166,13 +169,13 @@ class PCA9745B:
     def _spi_write(self, cmd: hex, val: hex) -> None:
         if cmd >= 0x7F:
             raise Exception(
-                "Registries are are 7 bits and thus limited to a maximum position of 0x7F. You attempted to write to: %s"
-                % cmd
+                "Registries are are 7 bits and thus limited to a maximum position of 0x7F. "
+                "You attempted to write to: %s" % cmd
             )
         if cmd >= 0x46:
             raise Exception(
-                "Registries 0x46 to 0x7F are reserved and should not be written to. You attempted to write to: %s"
-                % cmd
+                "Registries 0x46 to 0x7F are reserved and should not be written to. "
+                "You attempted to write to: %s" % cmd
             )
         if cmd >= 0x42:
             raise Exception(
@@ -181,9 +184,9 @@ class PCA9745B:
             )
 
         with self.spi_driver as spi:
-            spi.write(
-                bytes([cmd << 1, val])
-            )  # Bits 15-9 are for the register. Bit 8 (LSB) is: 1 = read, 0 = write. Bits 7-0 are for data.
+            spi.write(bytes([cmd << 1, val]))  # Bits 15-9 are for the register.
+            # Bit 8 (LSB) is: 1 = read, 0 = write.
+            # Bits 7-0 are for data.
 
     def _spi_read(self, cmd: hex) -> bytes:
         if cmd == (0x40 or 0x41):
@@ -205,23 +208,32 @@ class PCA9745B:
         return result
 
     def clear(self):
+        """
+        Clear error flags
+        :return:
+        """
         self._spi_write(self._REG_MODE2, 0x11)  # Clear errors
 
+    # TODO: Does this do anything?
     def reset(self):
+        """
+        Reset
+        :return:
+        """
         self._spi_write(self._REG_MODE2, 0x00)  # Reset
 
-        for LEDGRP in [
+        for led_group in [
             self._REG_LEDOUT0,
             self._REG_LEDOUT1,
             self._REG_LEDOUT2,
             self._REG_LEDOUT3,
         ]:
-            self._spi_write(LEDGRP, 0xAA)  # Default value
+            self._spi_write(led_group, 0xAA)  # Default value
 
         self._spi_write(self._REG_GRPPWM, 0xFF)  # Default value
         self._spi_write(self._REG_GRPFREQ, 0x00)  # Default value
 
-        for LEDPWM in [
+        for reg_led_pwm in [
             self._REG_PWM0,
             self._REG_PWM1,
             self._REG_PWM2,
@@ -239,9 +251,9 @@ class PCA9745B:
             self._REG_PWM14,
             self._REG_PWM15,
         ]:
-            self._spi_write(LEDPWM, 0x00)  # Default value
+            self._spi_write(reg_led_pwm, 0x00)  # Default value
 
-        for IREF in [
+        for reg_iref in [
             self._REG_IREF0,
             self._REG_IREF1,
             self._REG_IREF2,
@@ -259,17 +271,27 @@ class PCA9745B:
             self._REG_IREF14,
             self._REG_IREF15,
         ]:
-            self._spi_write(IREF, 0x00)  # Default value
+            self._spi_write(reg_iref, 0x00)  # Default value
 
         if self.debug:
             print("Reset")
 
     def error_flag_exist(self) -> bool:
+        """
+        Check if theres an error flag set
+        :return: Error flag is set
+        """
         results = self._spi_read(self._REG_MODE2)  # Verify errors cleared
+        # TODO: Do the actual check
+        return True
 
     # TODO: Write setPWM method
     def setPWM(self, led_num: int):
-        pass
+        """
+        Set PWM of LED
+        :param led_num:
+        :return:
+        """
 
     def setLED(
         self, led_group: int, red: int, green: int, blue: int, white: int = None
@@ -289,14 +311,9 @@ class PCA9745B:
                 "You must select group 0, 1, 2, or 3. You selected: %s" % led_group
             )
 
-        if red > 255:
-            red = 255
-
-        if green > 255:
-            green = 255
-
-        if blue > 255:
-            blue = 255
+        red = min(red, 255)
+        green = min(green, 255)
+        blue = min(blue, 255)
 
         red_led_num = (4 * led_group) + 0
         green_led_num = (4 * led_group) + 1
@@ -304,8 +321,7 @@ class PCA9745B:
 
         if white is not None:
 
-            if white > 255:
-                white = 255
+            white = min(white, 255)
 
             self._spi_write(
                 self._REG_LEDOUT0 + led_group, self._CFG_LEDOUT_GROUP_RGBW
@@ -324,25 +340,44 @@ class PCA9745B:
 
     # TODO: Write getPWM method
     def getPWM(self, led_num: int):
-        pass
+        """
+        Get PWM setting of LED
+        :param led_num:
+        :return:
+        """
 
     # TODO: Write getLED method
     def getLED(self, led_num: int):
-        pass
+        """
+        Get RGB/RGBW value of LED
+        :param led_num:
+        :return:
+        """
 
     # TODO: Write simpleSetBrightness method
     def simpleSetBrightness(self):
-        pass
-
-    # TODO: Write setBrightness method
-    def setBrightness(self):
-        pass
+        """
+        Set brightless for RGB/RGBW LED
+        """
 
     def set_led(self, led_num, pwm: hex = None, iref: hex = None):
+        """
+        Set individual LED
+        :param led_num:
+        :param pwm:
+        :param iref:
+        :return:
+        """
         self._spi_write(self._REG_PWM0 + led_num, pwm)
         self._spi_write(self._REG_IREF0 + led_num, iref)
 
     def set_led_mode_by_group(self, group: int = None, mode: hex = 0xAA):
+        """
+        Set LED mode by group
+        :param group:
+        :param mode:
+        :return:
+        """
         if group not in [0, 1, 2, 3]:
             raise ValueError(
                 "You must select group 0, 1, 2, or 3. You selected: %s" % group
@@ -351,17 +386,30 @@ class PCA9745B:
         self._spi_write(self._REG_LEDOUT0 + group, mode)
 
     def set_gain_all(self, val):
+        """
+        Set gain for all lights
+        :param val:
+        :return:
+        """
         self._spi_write(self._REG_IREFALL, val)
 
     def set_pwm_all(self, val):
+        """
+        Set PWM for all lights
+        :param val:
+        :return:
+        """
         self._spi_write(self._REG_PWMALL, val)
 
     def set_blink(self, freq: hex = None, duty: hex = None):
         """
         Blink LEDS
 
-        :param int freq: Blinking period is controlled through 256 linear steps from 00h (67 ms, frequency 15 Hz) to FFh (16.8 s).
-        :param int duty: General brightness for the 16 outputs is controlled through 255 linear steps from 00h (0 % duty cycle = LED output off) to FFh (99.6 % duty cycle = maximum brightness).
+        :param int freq: Blinking period is controlled through 256 linear steps from
+        00h (67 ms, frequency 15 Hz) to FFh (16.8 s).
+        :param int duty: General brightness for the 16 outputs is controlled through 255 linear
+        steps from 00h (0 % duty cycle = LED output off) to
+        FFh (99.6 % duty cycle = maximum brightness).
 
         """
 
@@ -371,12 +419,12 @@ class PCA9745B:
 
         if freq < 0 or freq > 255 or duty < 0 or duty > 255:
             raise ValueError("Value exceeds limits")
-        else:
-            self._spi_write(
-                self._REG_MODE2, self._CFG_MODE2_BLINK
-            )  # TODO: unnecessary to set for every blink call
-            self._spi_write(self._REG_GRPFREQ, freq)
-            self._spi_write(self._REG_GRPPWM, duty)
+
+        self._spi_write(
+            self._REG_MODE2, self._CFG_MODE2_BLINK
+        )  # TODO: unnecessary to set for every blink call
+        self._spi_write(self._REG_GRPFREQ, freq)
+        self._spi_write(self._REG_GRPPWM, duty)
 
     # TODO: Still working on this. Hard coded values for now for testing.
     def set_gradation_by_group(
@@ -391,6 +439,9 @@ class PCA9745B:
         hold_off_enable: bool = True,
         hold_off_time: float = 1,
     ):
+        """
+        Set light graduation by group
+        """
         ramp_rate = 0xC5
         step_time = 0x3F
         hold_cntl = 0xE4
