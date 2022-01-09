@@ -1,4 +1,5 @@
-# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-FileCopyrightText: 2017 Scott Shawcroft, written for Adafruit Industries
+# SPDX-FileCopyrightText: Copyright (c) 2022 Andrew Ferguson for Fergcorp, LLC
 #
 # SPDX-License-Identifier: MIT
 
@@ -22,18 +23,24 @@ with open(path.join(here, "README.rst"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="fergcorp-circuitpython-pca9745b-spi",
-    use_scm_version=True,
+    # Community Bundle Information
+    name="fergcorp-circuitpython-pca9745b",
+    use_scm_version={
+        # This is needed for the PyPI version munging in the Github Actions release.yml
+        "git_describe_command": "git describe --tags --long",
+        "local_scheme": "no-local-version",
+    },
     setup_requires=["setuptools_scm"],
-    description="SPI driven CircuitPython driver for PCA9745B constant current LED driver.",
+    description="SPI driven CircuitPython driver for NXP PCA9745B constant current LED driver.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     # The project's main homepage.
-    url="https://github.com/fergbrain/CircuitPython_PCA9745B_SPI",
+    url="https://github.com/fergbrain/Fergcorp_CircuitPython_PCA9745B.git",
     # Author details
-    author="Fergcorp, LLC",
-    author_email="andrew@fergcorp.com",
+    author="Andrew Ferguson",
+    author_email="",  # TODO: Add your email here
     install_requires=[
+        "Adafruit-Blinka",
         "adafruit-circuitpython-busdevice",
     ],
     # Choose your license
@@ -46,15 +53,14 @@ setup(
         "Topic :: System :: Hardware",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.8",
     ],
     # What does your project relate to?
-    keywords="adafruit circuitpython pca9745b_spi pca9745b led-driver",
+    keywords="adafruit blinka circuitpython micropython pca9745b led driver led-driver "
+             "constant-current spi",
+
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     # TODO: IF LIBRARY FILES ARE A PACKAGE FOLDER,
     #       CHANGE `py_modules=['...']` TO `packages=['...']`
-    py_modules=["pca9745b_spi"],
+    py_modules=["fergcorp_pca9745b"],
 )

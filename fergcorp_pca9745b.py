@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-`pca9745b_spi`
+`fergcorp_pca9745b`
 ================================================================================
 SPI driven CircuitPython driver for NXP PCA9745B constant current LED driver.
 * Author(s): Andrew Ferguson
@@ -19,6 +19,7 @@ Implementation Notes
 --------------------
 **Hardware:**
 * Hardware SPI port required on host platform.
+* `NXP PCA9745B Datasheet <https://www.nxp.com/docs/en/data-sheet/PCA9745B.pdf>`_
 **Software and Dependencies:**
 * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
 """
