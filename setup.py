@@ -29,7 +29,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     # The project's main homepage.
-    url="https://github.com/fergcorp/CircuitPython_PCA9745B_SPI",
+    url="https://github.com/fergbrain/CircuitPython_PCA9745B_SPI",
     # Author details
     author="Fergcorp, LLC",
     author_email="andrew@fergcorp.com",
