@@ -1,6 +1,12 @@
 Introduction
 ============
 
+THIS IS VERY MUCH ALPHA AND IN ACTIVE DEVELOPMENT.
+
+THINGS WILL BREAK!
+
+THIS MAY ALSO BREAK YOUR THINGS!
+
 SPI driven CircuitPython driver for NXP PCA9745B constant current LED driver.
 
 Dependencies
