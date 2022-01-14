@@ -157,9 +157,6 @@ class PCA9745B:
         self,
         spi: SPI,
         cs: DigitalInOut,
-        bpp: int = 3,
-        auto_write: bool = True,
-        pixel_order: tuple = None,
         frequency: int = 500000,
         debug: bool = False,
     ) -> None:
@@ -278,24 +275,15 @@ class PCA9745B:
 
     def error_flag_exist(self) -> bool:
         """
-        Check if theres an error flag set
+        Check if there's an error flag set
         :return: Error flag is set
         """
-        results = self._spi_read(self._REG_MODE2)  # Verify errors cleared
-        # TODO: Do the actual check
-        return True
+        results = self._spi_read(self._REG_MODE2)[0]
+        return bool(results & (1 << 6))
 
-    # TODO: Write setPWM method
-    def setPWM(self, led_num: int):
-        """
-        Set PWM of LED
-        :param led_num:
-        :return:
-        """
-
-    def setLED(
+    def set_led_by_group(
         self, led_group: int, red: int, green: int, blue: int, white: int = None
-    ):
+    ):  # pylint: disable=too-many-arguments
         """
         Set RGB/RGBW Color
 
@@ -338,26 +326,12 @@ class PCA9745B:
             self.set_led(green_led_num, pwm=green, iref=0xFF)  # Green
             self.set_led(blue_led_num, pwm=blue, iref=0xFF)  # Blue
 
-    # TODO: Write getPWM method
-    def getPWM(self, led_num: int):
-        """
-        Get PWM setting of LED
-        :param led_num:
-        :return:
-        """
-
     # TODO: Write getLED method
-    def getLED(self, led_num: int):
+    def get_led_by_group(self, led_num: int):
         """
         Get RGB/RGBW value of LED
         :param led_num:
         :return:
-        """
-
-    # TODO: Write simpleSetBrightness method
-    def simpleSetBrightness(self):
-        """
-        Set brightless for RGB/RGBW LED
         """
 
     def set_led(self, led_num, pwm: hex = None, iref: hex = None):
@@ -372,6 +346,12 @@ class PCA9745B:
         self._spi_write(self._REG_IREF0 + led_num, iref)
 
     def set_led_iref(self, led_num, iref: hex):
+        """
+
+        :param led_num:
+        :param iref:
+        :return:
+        """
         self._spi_write(self._REG_IREF0 + led_num, iref)
 
     def set_led_mode_by_group(self, group: int = None, mode: hex = 0xAA):
@@ -442,9 +422,9 @@ class PCA9745B:
         hold_on_time: float = 0,
         hold_off: bool = False,
         hold_off_time: float = 0,
-        continuous: bool = True
-
-    ):
+        continuous: bool = True,
+    ):  # pylint: disable=too-many-arguments
+        # pylint: disable=line-too-long
         """
         Set light graduation by group. Requires calling set_led_iref and set_led_mode_by group
 
@@ -461,6 +441,7 @@ class PCA9745B:
         :param float hold_off_time: How long to hold LED off for: 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6 seconds.
         :param bool continuous: True: Continuous operation. False: one shot.
         """
+        # pylint:enable=line-too-long
 
         hold_allowed_values = [0, 0.25, 0.5, 0.75, 1, 2, 3, 4, 6]
 
@@ -468,24 +449,32 @@ class PCA9745B:
             raise ValueError("Hold on time must be 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6")
 
         if hold_off_time not in hold_allowed_values:
-            raise ValueError("Hold off time must be 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6")
+            raise ValueError(
+                "Hold off time must be 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6"
+            )
 
-        data_ramp_rate = (ramp_up << 7) + (ramp_down << 6) + (ramp_rate_step_value-1)
-        data_step_time = (cycle_time_base << 6) + (cycle_multiplier - 1)
-        data_hold_cntl = (hold_on << 7) + \
-                         (hold_off << 6) + \
-                         (hold_allowed_values.index(hold_on_time) << 3) + \
-                         (hold_allowed_values.index(hold_off_time))
-
-
-        self._spi_write(self._REG_IREF_GRP0 + (group*4), final_iref_gain)
-        self._spi_write(self._REG_RAMP_RATE_GRP0 + (group*4), data_ramp_rate)
-        self._spi_write(self._REG_STEP_TIME_GRP0 + (group*4), data_step_time)
-        self._spi_write(self._REG_HOLD_CNTL_GRP0 + (group*4), data_hold_cntl)
+        self._spi_write(self._REG_IREF_GRP0 + (group * 4), final_iref_gain)
+        self._spi_write(
+            self._REG_RAMP_RATE_GRP0 + (group * 4),
+            (ramp_up << 7) + (ramp_down << 6) + (ramp_rate_step_value - 1),
+        )
+        self._spi_write(
+            self._REG_STEP_TIME_GRP0 + (group * 4),
+            (cycle_time_base << 6) + (cycle_multiplier - 1),
+        )
+        self._spi_write(
+            self._REG_HOLD_CNTL_GRP0 + (group * 4),
+            (
+                (hold_on << 7)
+                + (hold_off << 6)
+                + (hold_allowed_values.index(hold_on_time) << 3)
+                + (hold_allowed_values.index(hold_off_time))
+            ),
+        )
 
         # Get the current state and only modify the group we're supposed to
         self._spi_write(self._REG_GRAD_MODE_SEL0, 0xFF)
-        grad_cntl = self._spi_read(self._REG_GRAD_CNTL)[0]
+        grad_cntl = self._spi_read(self._REG_GRAD_CNTL)[-1]
         if continuous:
             grad_cntl = grad_cntl | (1 << (group * 2))
         else:
@@ -502,11 +491,12 @@ class PCA9745B:
         """
         # Get the current state and only modify the group we're supposed to
         self._spi_write(self._REG_GRAD_MODE_SEL0, 0xFF)
-        grad_cntl = self._spi_read(self._REG_GRAD_CNTL)[0]
+        grad_cntl = self._spi_read(self._REG_GRAD_CNTL)[-1]
+
         if start:
-            grad_cntl = grad_cntl | (1 << (group * 2)+1)
+            grad_cntl = grad_cntl | (1 << ((group * 2) + 1))
         else:
-            grad_cntl = grad_cntl & ~(1 << (group * 2)+1)
+            grad_cntl = grad_cntl & ~(1 << ((group * 2) + 1))
 
         self._spi_write(self._REG_GRAD_CNTL, grad_cntl)
 
