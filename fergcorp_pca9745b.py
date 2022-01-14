@@ -1,18 +1,16 @@
 # SPDX-FileCopyrightText: 2022 Andrew Ferguson for Fergcorp, LLC
 #
 # SPDX-License-Identifier: MIT
-
+# pylint:disable=line-too-long
 """
 `fergcorp_pca9745b`
 ================================================================================
 SPI driven CircuitPython driver for NXP PCA9745B constant current LED driver.
 * Author(s): Andrew Ferguson
 
-Based in part on: https://github.com/sensorberg/PCA9745B/
-`This is a driver class written in (micro)python, to control the PCA9745B or similars LED driver
-connected via SPI. It currently provides support for PWM controlling LED matrixes of various
-configurations.`
-Copyright (c) 2020 Mirko Vogt, Sensorberg GmbH (mirko.vogt@sensorberg.com)
+Based in part on: https://github.com/sensorberg/PCA9745B/ 'This is a driver class written in (micro)python,
+to control the PCA9745B or similars LED driver connected via SPI. It currently provides support for PWM controlling
+LED matrixes of various configurations.' Copyright (c) 2020 Mirko Vogt, Sensorberg GmbH (mirko.vogt@sensorberg.com)
 
 Coding and formatting follows conventions established by Adafruit Industries;
 neopixel_spi.py was used at the exemplar and is Copyright (c) 2019 Carter Nelson for
@@ -25,9 +23,8 @@ Implementation Notes
 * `NXP PCA9745B Datasheet <https://www.nxp.com/docs/en/data-sheet/PCA9745B.pdf>`_
 **Software and Dependencies:**
 * Adafruit's Bus Device library: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
-**Other:**
-* Designed to be somewhat compatible with: https://github.com/adafruit/Adafruit_TLC59711/
 """
+# pylint:enable=line-too-long
 
 # pylint: disable=ungrouped-imports
 from adafruit_bus_device.spi_device import SPIDevice
@@ -204,7 +201,7 @@ class PCA9745B:
 
         return result
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clear error flags
         :return:
@@ -212,7 +209,7 @@ class PCA9745B:
         self._spi_write(self._REG_MODE2, 0x11)  # Clear errors
 
     # TODO: Does this do anything?
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset
         :return:
@@ -281,9 +278,9 @@ class PCA9745B:
         results = self._spi_read(self._REG_MODE2)[0]
         return bool(results & (1 << 6))
 
-    def set_led_by_group(
+    def set_led_by_group(  # pylint: disable=too-many-arguments
         self, led_group: int, red: int, green: int, blue: int, white: int = None
-    ):  # pylint: disable=too-many-arguments
+    ) -> None:
         """
         Set RGB/RGBW Color
 
@@ -327,14 +324,14 @@ class PCA9745B:
             self.set_led(blue_led_num, pwm=blue, iref=0xFF)  # Blue
 
     # TODO: Write getLED method
-    def get_led_by_group(self, led_num: int):
+    def get_led_by_group(self, led_num: int) -> None:
         """
         Get RGB/RGBW value of LED
         :param led_num:
         :return:
         """
 
-    def set_led(self, led_num, pwm: hex = None, iref: hex = None):
+    def set_led(self, led_num, pwm: hex = None, iref: hex = None) -> None:
         """
         Set individual LED
         :param led_num:
@@ -345,7 +342,7 @@ class PCA9745B:
         self._spi_write(self._REG_PWM0 + led_num, pwm)
         self._spi_write(self._REG_IREF0 + led_num, iref)
 
-    def set_led_iref(self, led_num, iref: hex):
+    def set_led_iref(self, led_num, iref: hex) -> None:
         """
 
         :param led_num:
@@ -354,7 +351,7 @@ class PCA9745B:
         """
         self._spi_write(self._REG_IREF0 + led_num, iref)
 
-    def set_led_mode_by_group(self, group: int = None, mode: hex = 0xAA):
+    def set_led_mode_by_group(self, group: int = None, mode: hex = 0xAA) -> None:
         """
         Set LED mode by group
         :param group:
@@ -368,7 +365,7 @@ class PCA9745B:
 
         self._spi_write(self._REG_LEDOUT0 + group, mode)
 
-    def set_gain_all(self, val):
+    def set_gain_all(self, val: int) -> None:
         """
         Set gain for all lights
         :param val:
@@ -376,7 +373,7 @@ class PCA9745B:
         """
         self._spi_write(self._REG_IREFALL, val)
 
-    def set_pwm_all(self, val):
+    def set_pwm_all(self, val: int) -> None:
         """
         Set PWM for all lights
         :param val:
@@ -384,7 +381,7 @@ class PCA9745B:
         """
         self._spi_write(self._REG_PWMALL, val)
 
-    def set_blink(self, freq: hex = None, duty: hex = None):
+    def set_blink(self, freq: hex = None, duty: hex = None) -> None:
         """
         Set blink rate and duty. Requires set_led and set_led_mode.
 
@@ -409,7 +406,7 @@ class PCA9745B:
         self._spi_write(self._REG_GRPFREQ, freq)
         self._spi_write(self._REG_GRPPWM, duty)
 
-    def set_gradation_by_group(
+    def set_gradation_by_group(  # pylint: disable=too-many-arguments
         self,
         group: int,
         ramp_rate_step_value: int,
@@ -423,7 +420,7 @@ class PCA9745B:
         hold_off: bool = False,
         hold_off_time: float = 0,
         continuous: bool = True,
-    ):  # pylint: disable=too-many-arguments
+    ) -> None:
         # pylint: disable=line-too-long
         """
         Set light graduation by group. Requires calling set_led_iref and set_led_mode_by group
@@ -482,7 +479,7 @@ class PCA9745B:
 
         self._spi_write(self._REG_GRAD_CNTL, grad_cntl)
 
-    def set_gradation_control_by_group(self, group: int, start: bool = True):
+    def set_gradation_control_by_group(self, group: int, start: bool = True) -> None:
         """
 
         :param group:
