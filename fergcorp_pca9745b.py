@@ -166,7 +166,7 @@ class PCA9745B:
         self.spi_driver = SPIDevice(spi, cs, baudrate=frequency, phase=0, polarity=0)
         self.debug = debug
 
-    def _spi_write(self, cmd: hex, val: hex) -> None:
+    def _spi_write(self, cmd: int, val: int) -> None:
         if cmd >= 0x7F:
             raise Exception(
                 "Registries are are 7 bits and thus limited to a maximum position of 0x7F. "
@@ -371,6 +371,9 @@ class PCA9745B:
         self._spi_write(self._REG_PWM0 + led_num, pwm)
         self._spi_write(self._REG_IREF0 + led_num, iref)
 
+    def set_led_iref(self, led_num, iref: hex):
+        self._spi_write(self._REG_IREF0 + led_num, iref)
+
     def set_led_mode_by_group(self, group: int = None, mode: hex = 0xAA):
         """
         Set LED mode by group
@@ -403,7 +406,7 @@ class PCA9745B:
 
     def set_blink(self, freq: hex = None, duty: hex = None):
         """
-        Blink LEDS
+        Set blink rate and duty. Requires set_led and set_led_mode.
 
         :param int freq: Blinking period is controlled through 256 linear steps from
         00h (67 ms, frequency 15 Hz) to FFh (16.8 s).
@@ -426,31 +429,91 @@ class PCA9745B:
         self._spi_write(self._REG_GRPFREQ, freq)
         self._spi_write(self._REG_GRPPWM, duty)
 
-    # TODO: Still working on this. Hard coded values for now for testing.
     def set_gradation_by_group(
         self,
-        group: int = None,
-        ramp_up_enable: bool = True,
-        ramp_down_enable: bool = True,
-        ramp_rate: hex = 0x00,
-        cycle_time: int = 512,
-        hold_on_enable: bool = True,
-        hold_on_time: float = 1,
-        hold_off_enable: bool = True,
-        hold_off_time: float = 1,
+        group: int,
+        ramp_rate_step_value: int,
+        final_iref_gain: int,
+        ramp_up: bool = True,
+        ramp_down: bool = True,
+        cycle_time_base: bool = False,
+        cycle_multiplier: int = 64,
+        hold_on: bool = False,
+        hold_on_time: float = 0,
+        hold_off: bool = False,
+        hold_off_time: float = 0,
+        continuous: bool = True
+
     ):
         """
-        Set light graduation by group
+        Set light graduation by group. Requires calling set_led_iref and set_led_mode_by group
+
+        :param int group: What LED group: 0, 1, 2, or 3
+        :param int ramp_rate_step_value: 1-64. Step current = ramp_rate_step_value * Iref (112.5 or 225 uA)
+        :param int final_iref_gain: Final and Hold On output gain. Iout = Iref * 112.5uA (Rext=2k) or 225 uA (Rext=1k)
+        :param bool ramp_up: Enable/disable ramp up. If false, graduation is one shot.
+        :param bool ramp_down: Enable/disable ramp down. If false, graduation is one shot.
+        :param bool cycle_time_base: False  = 0.5ms; True = 8ms
+        :param int cycle_multiplier: 1-64. Step time is cycle_time_base * cycle_time_multiplier. Max is 512ms/step.
+        :param bool hold_on: True: Hold the LED on for a time before ramp down begins
+        :param float hold_on_time: How long to hold LED on for: 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6 seconds.
+        :param bool hold_off: True: Hold the LED off for a time before ramp up begins
+        :param float hold_off_time: How long to hold LED off for: 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6 seconds.
+        :param bool continuous: True: Continuous operation. False: one shot.
         """
-        ramp_rate = 0xC5
-        step_time = 0x3F
-        hold_cntl = 0xE4
-        iref = 0x58
 
-        self._spi_write(self._REG_RAMP_RATE_GRP0 + group, ramp_rate)
-        self._spi_write(self._REG_STEP_TIME_GRP0 + group, step_time)
-        self._spi_write(self._REG_HOLD_CNTL_GRP0 + group, hold_cntl)
-        self._spi_write(self._REG_IREF_GRP0 + group, iref)
+        hold_allowed_values = [0, 0.25, 0.5, 0.75, 1, 2, 3, 4, 6]
 
-        self._spi_write(self._REG_GRAD_MODE_SEL0, 0x01)
-        self._spi_write(self._REG_GRAD_CNTL, 0x01)
+        if hold_on_time not in hold_allowed_values:
+            raise ValueError("Hold on time must be 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6")
+
+        if hold_off_time not in hold_allowed_values:
+            raise ValueError("Hold off time must be 0, 0.25, 0.5, 0.75, 1, 2, 3, 4 or 6")
+
+        data_ramp_rate = (ramp_up << 7) + (ramp_down << 6) + (ramp_rate_step_value-1)
+        data_step_time = (cycle_time_base << 6) + (cycle_multiplier - 1)
+        data_hold_cntl = (hold_on << 7) + \
+                         (hold_off << 6) + \
+                         (hold_allowed_values.index(hold_on_time) << 3) + \
+                         (hold_allowed_values.index(hold_off_time))
+
+
+        self._spi_write(self._REG_IREF_GRP0 + (group*4), final_iref_gain)
+        self._spi_write(self._REG_RAMP_RATE_GRP0 + (group*4), data_ramp_rate)
+        self._spi_write(self._REG_STEP_TIME_GRP0 + (group*4), data_step_time)
+        self._spi_write(self._REG_HOLD_CNTL_GRP0 + (group*4), data_hold_cntl)
+
+        # Get the current state and only modify the group we're supposed to
+        self._spi_write(self._REG_GRAD_MODE_SEL0, 0xFF)
+        grad_cntl = self._spi_read(self._REG_GRAD_CNTL)[0]
+        if continuous:
+            grad_cntl = grad_cntl | (1 << (group * 2))
+        else:
+            grad_cntl = grad_cntl & ~(1 << (group * 2))
+
+        self._spi_write(self._REG_GRAD_CNTL, grad_cntl)
+
+    def set_gradation_control_by_group(self, group: int, start: bool = True):
+        """
+
+        :param group:
+        :param start:
+        :return:
+        """
+        # Get the current state and only modify the group we're supposed to
+        self._spi_write(self._REG_GRAD_MODE_SEL0, 0xFF)
+        grad_cntl = self._spi_read(self._REG_GRAD_CNTL)[0]
+        if start:
+            grad_cntl = grad_cntl | (1 << (group * 2)+1)
+        else:
+            grad_cntl = grad_cntl & ~(1 << (group * 2)+1)
+
+        self._spi_write(self._REG_GRAD_CNTL, grad_cntl)
+
+    def get(self, reg: int) -> bytes:
+        """
+        Read data from the given register
+        :param reg: Register to read from
+        :return: bytes read from the register
+        """
+        return self._spi_read(reg)
